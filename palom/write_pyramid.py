@@ -164,6 +164,8 @@ def write_pyramid(
                 dtype=dtype,
                 tile=tile_shape
             )
+        import time
+        time.sleep(2)
 
 
 def count_num_channels(imgs):
@@ -182,11 +184,11 @@ def tile_from_combined_mosaics(mosaics, tile_shape):
     for idx, m in enumerate(mosaics):
         # the performance is heavily degraded without pre-computing the mosaic
         # channel
-        with tqdm.dask.TqdmCallback(
-            ascii=True,
-            desc=f'Assembling mosaic ({m.shape[0]:2} channel(s)) {idx+1:2}/{n:2}',
-        ):
-            m = m.compute()
+        # with tqdm.dask.TqdmCallback(
+        #     ascii=True,
+        #     desc=f'Assembling mosaic ({m.shape[0]:2} channel(s)) {idx+1:2}/{n:2}',
+        # ):
+        m = m.compute()
         for c in m:
             for y in range(0, num_rows, h):
                 for x in range(0, num_cols, w):
@@ -202,10 +204,20 @@ def tile_from_pyramid(
     level=0
 ):
     h, w = tile_shape
-    for c in tqdm.trange(
-            num_channels,
-            ascii=True, desc=f'Processing channel'
-        ):
+    f = open('tqdmmmmm.txt', 'a')
+    t = tqdm.tqdm(
+        total=num_channels, ascii=True, file=f,
+        miniters=1,
+        mininterval=0.0001,
+    )
+    # for c in tqdm.trange(
+    #         num_channels,
+    #         # ascii=True, desc=f'Processing channel',
+    #         file=f, miniters=1,
+    #         mininterval=0.0001,
+    #         # maxinterval=0.1
+    #     ):
+    for c in range(num_channels):
         img = tifffile.imread(
             path, is_ome=False, series=0, key=c, level=level
         )
@@ -216,3 +228,17 @@ def tile_from_pyramid(
         for y in range(0, num_rows, h):
             for x in range(0, num_columns, w):
                 yield np.array(img[y:y+h, x:x+w])
+        t.update()
+    t.update()
+    f.close()
+
+
+
+# def tqdm_test():
+#     t = tqdm.tqdm(total=20, ascii=True, desc=f'Processing channel')
+#     for i in range(20):
+#         time.sleep(1)
+#         for j in range(100):
+#             for k in range(20):
+#                 yield j*k
+#         t.update()
